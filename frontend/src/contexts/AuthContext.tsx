@@ -43,7 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     form.append("username", email);
     form.append("password", password);
 
-    const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+    const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api/v1";
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: form,

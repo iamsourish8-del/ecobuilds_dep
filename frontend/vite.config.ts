@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Optional: proxy API calls during development
-      // "/api": "http://localhost:8000",
+      // "/api": "http://",
     },
   },
 });
