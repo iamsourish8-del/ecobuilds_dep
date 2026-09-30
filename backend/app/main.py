@@ -16,11 +16,9 @@ def _cors_origin_allowed(origin: str) -> bool:
     if not origin:
         return False
         
-    # Allow local development origins
     if "localhost" in origin or "127.0.0.1" in origin:
         return True
         
-    # Check explicitly allowed origins from settings
     allowed = getattr(settings, "CORS_ORIGINS", [])
     if origin in allowed:
         return True
@@ -29,7 +27,6 @@ def _cors_origin_allowed(origin: str) -> bool:
     if frontend_url and origin.rstrip("/") == frontend_url.rstrip("/"):
         return True
         
-    # Allow all Vercel preview and production deployments
     if origin.startswith("https://") and ".vercel.app" in origin:
         return True
         
@@ -47,7 +44,6 @@ def create_app():
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    # Clean CORS header injection (Restored from Vasudha)
     @app.after_request
     def add_cors_headers(response):
         origin = request.headers.get("Origin")
@@ -57,7 +53,6 @@ def create_app():
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
             
-        # Fast response for OPTIONS preflight requests
         if request.method == "OPTIONS":
             response.status_code = 200
         return response
@@ -71,6 +66,12 @@ def create_app():
     app.register_blueprint(xai_bp, url_prefix="/api/v1/xai")
     app.register_blueprint(tenant_bp, url_prefix="/api/v1/tenant")
 
+    # NEW: Dedicated UptimeRobot Keepalive Endpoint
+    @app.get("/api/v1/keepalive")
+    def keepalive():
+        """Lightweight ping used by UptimeRobot to prevent Render free-tier sleep."""
+        return jsonify({"status": "awake", "service": "ecobuilds-bms"})
+
     @app.get("/health")
     def health():
         return jsonify({"status": "ok", "service": "unified-bms", "version": "1.2.0", "challenge": "02-smart-buildings"})
@@ -83,6 +84,7 @@ def create_app():
             "track": "Challenge 02 — Smart Buildings",
             "sponsor": "Schneider Electric",
             "health": "/health",
+            "keepalive": "/api/v1/keepalive",
             "api": "/api/v1",
         })
 
