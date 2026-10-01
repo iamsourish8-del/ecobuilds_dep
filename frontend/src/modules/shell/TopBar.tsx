@@ -68,18 +68,18 @@ export const TopBar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 transition-colors duration-200">
-      <div className="h-16 px-4 sm:px-6 flex items-center justify-between gap-4">
+      <div className="h-16 px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
 
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="md:hidden inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-            <Zap className="w-4 h-4" /> Unified BMS
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <span className="md:hidden inline-flex items-center gap-1 text-sm font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap flex-shrink-0">
+            <Zap className="w-4 h-4" /> EcoBuilds
           </span>
           {user && user.building_ids.length > 0 && (
-            <div className="relative">
+            <div className="relative min-w-0">
               <select
                 value={activeBuilding || ""}
                 onChange={(e) => setActiveBuilding(e.target.value)}
-                className="appearance-none bg-emerald-50/80 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-emerald-950 dark:text-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer max-w-[240px] shadow-sm transition-colors"
+                className="appearance-none bg-emerald-50/80 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-emerald-950 dark:text-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer max-w-[130px] sm:max-w-[240px] truncate shadow-sm transition-colors"
               >
                 {user.building_ids.map((id) => (
                   <option key={id} value={id}>{BUILDING_NAMES[id] || id}</option>
@@ -90,7 +90,7 @@ export const TopBar: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
 
           {/* BEAUTIFIED: Larger, bolder live date/time widget */}
           {currentDateTime && (
@@ -102,7 +102,7 @@ export const TopBar: React.FC = () => {
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
           >
             {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
           </button>
@@ -110,7 +110,7 @@ export const TopBar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl text-emerald-700/70 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 focus:outline-none transition-colors"
+              className="relative p-1.5 sm:p-2 rounded-xl text-emerald-700/70 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 focus:outline-none transition-colors"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
@@ -136,7 +136,7 @@ export const TopBar: React.FC = () => {
             <span className="text-xs font-medium text-emerald-700/70 dark:text-emerald-400/80 capitalize">{user?.role?.replace("_", " ")}</span>
           </div>
 
-          <button onClick={() => { logout(); navigate("/login"); }} className="p-2 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
+          <button onClick={() => { logout(); navigate("/login"); }} className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
             <LogOut className="w-5 h-5" />
           </button>
         </div>

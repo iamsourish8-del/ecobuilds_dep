@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useBuilding } from "../../contexts/BuildingContext";
 import { apiFetch } from "../../services/apiClient";
 import { Trophy, Award, Lightbulb, TrendingDown, Leaf, Loader2, CheckCircle2 } from "lucide-react";
+import confetti from "canvas-confetti";
 
 const FALLBACK_ME = {
   kwh_this_week: 42.5, energy_saved_kwh: 15.1, co2_avoided_kg: 12.4, vs_building_avg_pct: -18, points: 1280,
@@ -34,6 +35,17 @@ export default function TenantPage() {
   const [logging, setLogging] = useState(false);
   const [logMsg, setLogMsg] = useState<string | null>(null);
 
+  // Trigger Confetti Function
+  const fireConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#34d399', '#059669'], // EcoBuilds Emerald Palette
+      zIndex: 9999
+    });
+  };
+
   useEffect(() => {
     if (!activeBuilding) { setLoading(false); return; }
     setLoading(true);
@@ -56,9 +68,11 @@ export default function TenantPage() {
       const res = await apiFetch(`/tenant/${activeBuilding}/actions/log`, { method: "POST", body: JSON.stringify({ action, points, building_id: activeBuilding }) });
       setMe((prev: any) => ({ ...prev, points: (prev.points || 0) + (res.points_awarded || points), energy_saved_kwh: (prev.energy_saved_kwh || 0) + 0.5 }));
       setLogMsg(res.message || `+${res.points_awarded || points} green credits`);
+      fireConfetti(); // Fire on successful API call
     } catch (e: any) {
       setMe((prev: any) => ({ ...prev, points: (prev.points || 0) + points }));
       setLogMsg(`+${points} green credits (saved locally)`);
+      fireConfetti(); // Fire on local fallback mode
     } finally { setLogging(false); }
   };
 

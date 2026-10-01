@@ -5,7 +5,7 @@ import { fetchDashboardSummary } from "../../services/bffApi";
 import { ModuleCard } from "../../components/ModuleCard";
 import { AlertBanner } from "../../components/AlertBanner";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Leaf, IndianRupee, Zap, Users, AlertTriangle, Sun } from "lucide-react";
+import { Leaf, IndianRupee, Zap, Users, AlertTriangle, Sun, Download } from "lucide-react";
 import { PerformancePillarsStrip } from "../../components/PerformancePillarsStrip";
 import { BuildingMap } from "../../components/BuildingMap";
 
@@ -32,11 +32,26 @@ export const CommandCenter: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">{summary.building_name}</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          {summary.city} · {summary.area_m2?.toLocaleString()} m² · {summary.floors} floors · Live building overview
-        </p>
+
+      {/* 
+        UPDATED HEADER SECTION 
+        This flex container pushes the building name to the left and the Download button to the right 
+      */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">{summary.building_name}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {summary.city} · {summary.area_m2?.toLocaleString()} m² · {summary.floors} floors · Live building overview
+          </p>
+        </div>
+
+        <button
+          onClick={() => window.print()}
+          className="print:hidden inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-sm font-medium transition-colors shadow-sm"
+        >
+          <Download className="w-4 h-4" />
+          Download Report
+        </button>
       </div>
 
       <div>
