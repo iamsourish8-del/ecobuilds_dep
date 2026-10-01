@@ -16,8 +16,17 @@ export const TopBar: React.FC = () => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState<string>("");
+
+  // Initialize to light mode by default for first-time visitors
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem("ecobuilds-theme") === "dark";
+    const savedTheme = localStorage.getItem("ecobuilds-theme");
+
+    if (!savedTheme) {
+      localStorage.setItem("ecobuilds-theme", "light");
+      return false;
+    }
+
+    return savedTheme === "dark";
   });
 
   // Live date & time ticker (No seconds)
