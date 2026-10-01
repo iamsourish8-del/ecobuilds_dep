@@ -23,7 +23,7 @@ export const Sidebar: React.FC = () => (
         <Zap className="w-4 h-4" />
       </div>
       <div>
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">Unified BMS</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">EcoBuilds</p>
         <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Smart Buildings</p>
       </div>
     </div>
