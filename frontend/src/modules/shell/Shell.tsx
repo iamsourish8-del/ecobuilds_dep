@@ -29,8 +29,9 @@ export const Shell: React.FC = () => {
 
   const isHome = location.pathname === "/" || location.pathname === "/dashboard";
 
+  // Switched bg-slate-50 to bg-emerald-50/50 for the slight green tint
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-emerald-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <TopBar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />

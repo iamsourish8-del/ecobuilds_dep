@@ -1,65 +1,28 @@
-/**
- * Shared AlertBanner — used on the command center and inside modules.
- */
-
 import React from "react";
+import { AlertTriangle, Info } from "lucide-react";
 import clsx from "clsx";
-import { AlertTriangle, Info, XCircle } from "lucide-react";
 
-interface AlertBannerProps {
-  severity: "info" | "yellow" | "red" | "critical";
-  message: string;
-  module?: string;
-  onDismiss?: () => void;
-}
-
-const styles = {
-  info: "bg-sky-50 border-sky-200 text-sky-800",
-  yellow: "bg-amber-50 border-amber-200 text-amber-900",
-  red: "bg-red-50 border-red-200 text-red-900",
-  critical: "bg-red-100 border-red-300 text-red-950",
-};
-
-const icons = {
-  info: Info,
-  yellow: AlertTriangle,
-  red: XCircle,
-  critical: XCircle,
-};
-
-export const AlertBanner: React.FC<AlertBannerProps> = ({
-  severity,
-  message,
-  module,
-  onDismiss,
-}) => {
-  const Icon = icons[severity] || Info;
+export const AlertBanner = ({ severity, message, module }: any) => {
+  const isWarn = severity === "warning" || severity === "high" || !severity; // Catch undefined as a warning for demo
 
   return (
     <div
       className={clsx(
-        "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm",
-        styles[severity]
+        "flex items-center gap-3 rounded-xl border p-3.5 text-sm transition-colors",
+        isWarn
+          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200"
+          : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-900 dark:text-emerald-200"
       )}
     >
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        {module && (
-          <span className="font-medium capitalize mr-2 opacity-80">
-            [{module.replace("_", " ")}]
-          </span>
-        )}
-        <span>{message}</span>
-      </div>
-      {onDismiss && (
-        <button
-          onClick={onDismiss}
-          className="opacity-60 hover:opacity-100 transition-opacity"
-          aria-label="Dismiss"
-        >
-          ×
-        </button>
+      {isWarn ? (
+        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+      ) : (
+        <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
       )}
+      <div className="flex-1 min-w-0 truncate">
+        <span className="font-semibold opacity-80 mr-1.5">[{module}]</span>
+        <span className="opacity-90">{message}</span>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,3 @@
-/**
- * Module 5 — Explainable AI Trust Layer & Natural-Language Query
- */
-
 import React, { useEffect, useState } from "react";
 import { useBuilding } from "../../contexts/BuildingContext";
 import { apiFetch } from "../../services/apiClient";
@@ -43,17 +39,17 @@ export default function XaiPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
           Explainable AI & Ask the Building
         </h1>
-        <p className="text-slate-500 mt-1 text-sm">
+        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
           Every automated decision explained in plain English + natural-language queries
         </p>
       </div>
 
       {/* NLQ chat */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6">
-        <h2 className="text-sm font-medium text-slate-600 uppercase tracking-wide mb-4 flex items-center gap-2">
+      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <h2 className="text-sm font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-4 flex items-center gap-2">
           <MessageSquare className="w-4 h-4" /> Ask the Building
         </h2>
 
@@ -64,7 +60,7 @@ export default function XaiPage() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && ask()}
             placeholder='e.g. "Why did Floor 3 energy spike yesterday?"'
-            className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="flex-1 rounded-xl bg-transparent border border-slate-200 dark:border-slate-700 dark:text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
           <button
             onClick={ask}
@@ -86,7 +82,7 @@ export default function XaiPage() {
             <button
               key={q}
               onClick={() => setQuestion(q)}
-              className="text-xs rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1 text-slate-600 transition"
+              className="text-xs rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-3 py-1 text-slate-600 dark:text-slate-300 transition"
             >
               {q}
             </button>
@@ -94,10 +90,10 @@ export default function XaiPage() {
         </div>
 
         {answer && (
-          <div className="mt-5 rounded-xl bg-emerald-50/50 border border-emerald-100 p-4">
-            <p className="text-sm text-slate-800 leading-relaxed">{answer.answer}</p>
+          <div className="mt-5 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-4">
+            <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">{answer.answer}</p>
             {answer.sources?.length > 0 && (
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                 Sources: {answer.sources.join(" · ")}
               </p>
             )}
@@ -107,7 +103,7 @@ export default function XaiPage() {
 
       {/* Recent explanations */}
       <section>
-        <h2 className="text-sm font-medium text-slate-600 uppercase tracking-wide mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4" /> Recent automated decisions
         </h2>
 
@@ -118,17 +114,24 @@ export default function XaiPage() {
             {explanations.map((ex) => (
               <div
                 key={ex.decision_id}
-                className="bg-white rounded-xl border border-slate-200 p-4"
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {ex.decision_type.replace(/_/g, " ")}
                   </span>
-                  <span className="text-xs text-slate-400">
-                    {new Date(ex.timestamp).toLocaleString()}
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    {/* The date formatting you requested without seconds */}
+                    {new Date(ex.timestamp).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
-                <p className="text-sm text-slate-800 leading-relaxed">
+                <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
                   {ex.plain_english}
                 </p>
                 {ex.top_features?.length > 0 && (
@@ -136,10 +139,10 @@ export default function XaiPage() {
                     {ex.top_features.map((f: any) => (
                       <span
                         key={f.feature}
-                        className="inline-flex items-center gap-1 text-xs bg-slate-50 border border-slate-100 rounded-full px-2.5 py-1 text-slate-600"
+                        className="inline-flex items-center gap-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full px-2.5 py-1 text-slate-600 dark:text-slate-400"
                       >
                         <span className="capitalize">{f.feature.replace(/_/g, " ")}</span>
-                        <span className="font-medium text-slate-800">
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
                           {(f.contribution * 100).toFixed(0)}%
                         </span>
                       </span>
