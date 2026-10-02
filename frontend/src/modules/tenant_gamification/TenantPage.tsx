@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useBuilding } from "../../contexts/BuildingContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../services/apiClient";
 import { Trophy, Award, Lightbulb, TrendingDown, Leaf, Loader2, CheckCircle2 } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -28,6 +29,9 @@ const FALLBACK_NUDGES = [
 
 export default function TenantPage() {
   const { activeBuilding } = useBuilding();
+  const { user } = useAuth();
+  const isTenant = user?.role === "tenant";
+
   const [me, setMe] = useState<any>(FALLBACK_ME);
   const [board, setBoard] = useState<any>(FALLBACK_BOARD);
   const [nudges, setNudges] = useState<any[]>(FALLBACK_NUDGES);
@@ -35,18 +39,16 @@ export default function TenantPage() {
   const [logging, setLogging] = useState(false);
   const [logMsg, setLogMsg] = useState<string | null>(null);
 
-  // Trigger Confetti Function
   const fireConfetti = () => {
     confetti({
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#10b981', '#34d399', '#059669'], // EcoBuilds Emerald Palette
+      colors: ['#10b981', '#34d399', '#059669'],
       zIndex: 9999
     });
   };
 
-  // Reusable data loader for initial mount and post-action refreshes
   const loadData = async (silent = false) => {
     if (!activeBuilding) {
       if (!silent) setLoading(false);
@@ -84,23 +86,17 @@ export default function TenantPage() {
   }, [activeBuilding]);
 
   const logEcoAction = async (actionName: string, points = 50) => {
-    if (!activeBuilding) return;
+    if (!activeBuilding || !isTenant) return;
     setLogging(true);
     setLogMsg(null);
     try {
-      // 1. Send points permanently to PostgreSQL
       const res = await apiFetch(`/tenant/${activeBuilding}/log-action`, {
         method: "POST",
         body: JSON.stringify({ action: actionName, points })
       });
-
-      // 2. Display real success message from the server
       setLogMsg(res.message || `+${points} green credits saved!`);
       fireConfetti();
-
-      // 3. Silently fetch the updated Leaderboard and Personal Points instantly
       await loadData(true);
-
     } catch (e: any) {
       console.error("Action logging failed:", e);
       setLogMsg(`Error: Could not save points. ${e.message}`);
@@ -124,49 +120,61 @@ export default function TenantPage() {
       </div>
 
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+
+        {/* DYNAMIC TOP BLOCK: Centered for non-tenants, split for tenants */}
+        <div className={isTenant ? "flex items-center justify-between mb-6" : "flex flex-col items-center justify-center text-center mb-6"}>
+          <div className={isTenant ? "" : "flex flex-col items-center"}>
             <p className="text-sm text-slate-500 dark:text-slate-400">This week</p>
             <p className="text-3xl font-semibold text-slate-900 dark:text-white mt-1">{me.kwh_this_week ?? "—"} kWh</p>
-            <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1">
+            <p className={`text-sm text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1 ${!isTenant ? "justify-center" : ""}`}>
               <TrendingDown className="w-4 h-4" />{Math.abs(me.vs_building_avg_pct ?? 0)}% below building average
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Saved {me.energy_saved_kwh ?? 0} kWh · {me.co2_avoided_kg ?? 0} kg CO₂ avoided</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Green credits</p>
-            <p className="text-3xl font-semibold text-emerald-700 dark:text-emerald-400">{me.points ?? 0}</p>
-            <p className="text-xs text-slate-400 mt-1">Rank #{me.rank_on_floor ?? "—"} on floor · #{me.rank_in_building ?? "—"} building</p>
-          </div>
+
+          {/* GREEN CREDITS: Hidden for Facility Managers and Super Admins */}
+          {isTenant && (
+            <div className="text-right">
+              <p className="text-sm text-slate-500 dark:text-slate-400">Green credits</p>
+              <p className="text-3xl font-semibold text-emerald-700 dark:text-emerald-400">{me.points ?? 0}</p>
+              <p className="text-xs text-slate-400 mt-1">Rank #{me.rank_on_floor ?? "—"} on floor · #{me.rank_in_building ?? "—"} building</p>
+            </div>
+          )}
         </div>
 
-        <div>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
-            <Award className="w-3.5 h-3.5" /> Badges
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {badges.map((b: any) => (
-              <span key={b.id || b.name} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
-                <Award className="w-3 h-3" />{typeof b === "string" ? b : b.name}
-              </span>
-            ))}
+        {/* BADGES: Hidden for non-tenants */}
+        {isTenant && (
+          <div>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+              <Award className="w-3.5 h-3.5" /> Badges
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {badges.map((b: any) => (
+                <span key={b.id || b.name} className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800/50 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                  <Award className="w-3 h-3" />{typeof b === "string" ? b : b.name}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="mt-5 pt-4 border-t border-emerald-50 dark:border-emerald-800/30">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
-            <Leaf className="w-3.5 h-3.5" /> Log eco-action
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button disabled={logging} onClick={() => logEcoAction("setback_support", 50)} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-medium px-4 py-2 transition inline-flex items-center gap-1.5">
-              {logging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Leaf className="w-3.5 h-3.5" />}Support setback (+50)
-            </button>
-            <button disabled={logging} onClick={() => logEcoAction("lights_off", 30)} className="rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-400 text-xs font-medium px-4 py-2 transition">
-              Lights off (+30)
-            </button>
+        {/* LOG ECO-ACTION: Hidden for non-tenants */}
+        {isTenant && (
+          <div className="mt-5 pt-4 border-t border-emerald-50 dark:border-emerald-800/30">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+              <Leaf className="w-3.5 h-3.5" /> Log eco-action
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button disabled={logging} onClick={() => logEcoAction("setback_support", 50)} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-medium px-4 py-2 transition inline-flex items-center gap-1.5 cursor-pointer">
+                {logging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Leaf className="w-3.5 h-3.5" />}Support setback (+50)
+              </button>
+              <button disabled={logging} onClick={() => logEcoAction("lights_off", 30)} className="rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-400 text-xs font-medium px-4 py-2 transition cursor-pointer">
+                Lights off (+30)
+              </button>
+            </div>
+            {logMsg && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {logMsg}</p>}
           </div>
-          {logMsg && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {logMsg}</p>}
-        </div>
+        )}
       </div>
 
       {challenges.length > 0 && (

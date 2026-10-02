@@ -27,8 +27,20 @@ export const LoginPage: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  const { login } = useAuth();
+  // Extract both login and user from context
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Watch the user state. As soon as they are logged in, route them based on role.
+  useEffect(() => {
+    if (user) {
+      if (user.role === "tenant") {
+        navigate("/tenant", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,10 +48,9 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/dashboard");
+      // Navigation is now handled safely by the useEffect above
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
-    } finally {
       setLoading(false);
     }
   };

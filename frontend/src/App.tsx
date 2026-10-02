@@ -5,7 +5,7 @@
 
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { BuildingProvider } from "./contexts/BuildingContext";
 import { Shell } from "./modules/shell/Shell";
 import { LoginPage } from "./pages/LoginPage";
@@ -27,6 +27,14 @@ const PageLoader = () => (
   </div>
 );
 
+// NEW: Interceptor to automatically route users to their correct starting page
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "tenant") return <Navigate to="/tenant" replace />;
+  return <Navigate to="/dashboard" replace />;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -37,10 +45,10 @@ export default function App() {
 
             {/* Everything under Shell requires auth (enforced inside Shell) */}
             <Route path="/" element={<Shell />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell when path is home */}
+              {/* Replaced hardcoded dashboard redirect with the Role-Based Interceptor */}
+              <Route index element={<RoleBasedRedirect />} />
+              <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell when path is /dashboard */}
 
-              {/* NEW: Admin Route */}
               <Route
                 path="admin"
                 element={
@@ -100,7 +108,8 @@ export default function App() {
               />
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Catch-all route now utilizes the interceptor to safely redirect */}
+            <Route path="*" element={<RoleBasedRedirect />} />
           </Routes>
         </BrowserRouter>
       </BuildingProvider>

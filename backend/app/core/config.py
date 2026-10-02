@@ -7,8 +7,8 @@ class Settings:
     REFRESH_TOKEN_EXPIRE_DAYS = 7
     CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173","http://localhost:3000","http://127.0.0.1:3000"]
     
-    # NEW: Database connection string (Replace with your Neon/Supabase URL in production)
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "postgresql://user:password@aws-0-eu-central-1.pooler.supabase.com:6543/postgres")
+    # Safe Local Fallback: Uses SQLite locally, but Render will still use its live Supabase DATABASE_URL
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///local_ecobuilds.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 settings = Settings()
