@@ -17,8 +17,6 @@ const FaultsPage = lazy(() => import("./modules/fault_detection/FaultsPage"));
 const GridSolarPage = lazy(() => import("./modules/grid_solar/GridSolarPage"));
 const XaiPage = lazy(() => import("./modules/xai_nlq/XaiPage"));
 const TenantPage = lazy(() => import("./modules/tenant_gamification/TenantPage"));
-
-// NEW: Lazy load the admin page
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 const PageLoader = () => (
@@ -27,7 +25,7 @@ const PageLoader = () => (
   </div>
 );
 
-// NEW: Interceptor to automatically route users to their correct starting page
+// Interceptor to automatically route users to their correct starting page
 const RoleBasedRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -43,72 +41,27 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
 
+            {/* 
+              CRITICAL FIX: The redirect interceptor is now placed completely OUTSIDE 
+              of the Shell wrapper. This guarantees it intercepts the root ("/") visit
+              first, preventing the Shell from hijacking it. 
+            */}
+            <Route path="/" element={<RoleBasedRedirect />} />
+
             {/* Everything under Shell requires auth (enforced inside Shell) */}
-            <Route path="/" element={<Shell />}>
-              {/* Replaced hardcoded dashboard redirect with the Role-Based Interceptor */}
-              <Route index element={<RoleBasedRedirect />} />
-              <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell when path is /dashboard */}
+            <Route element={<Shell />}>
+              <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell */}
 
-              <Route
-                path="admin"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <AdminPage />
-                  </Suspense>
-                }
-              />
-
-              <Route
-                path="occupancy"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <OccupancyPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="digital-twin"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <DigitalTwinPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="faults"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <FaultsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="grid-solar"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <GridSolarPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="xai"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <XaiPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="tenant"
-                element={
-                  <Suspense fallback={<PageLoader />}>
-                    <TenantPage />
-                  </Suspense>
-                }
-              />
+              <Route path="admin" element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
+              <Route path="occupancy" element={<Suspense fallback={<PageLoader />}><OccupancyPage /></Suspense>} />
+              <Route path="digital-twin" element={<Suspense fallback={<PageLoader />}><DigitalTwinPage /></Suspense>} />
+              <Route path="faults" element={<Suspense fallback={<PageLoader />}><FaultsPage /></Suspense>} />
+              <Route path="grid-solar" element={<Suspense fallback={<PageLoader />}><GridSolarPage /></Suspense>} />
+              <Route path="xai" element={<Suspense fallback={<PageLoader />}><XaiPage /></Suspense>} />
+              <Route path="tenant" element={<Suspense fallback={<PageLoader />}><TenantPage /></Suspense>} />
             </Route>
 
-            {/* Catch-all route now utilizes the interceptor to safely redirect */}
+            {/* Catch-all route also uses the safe interceptor */}
             <Route path="*" element={<RoleBasedRedirect />} />
           </Routes>
         </BrowserRouter>
