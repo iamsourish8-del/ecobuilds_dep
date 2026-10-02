@@ -34,13 +34,22 @@ export default function OccupancyPage() {
   const [overrideMsg, setOverrideMsg] = useState<string | null>(null);
   const [overrideErr, setOverrideErr] = useState<string | null>(null);
 
-  const reload = () => {
+  // Updated reload function to handle silent refreshes after overrides
+  const reload = async (silent = false) => {
     if (!activeBuilding) return;
-    setLoading(true);
-    Promise.all([fetchOccupancyStatus(activeBuilding), fetchSavingsHistory(activeBuilding)])
-      .then(([s, h]) => { setStatus(s); setSavings(h); })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    if (!silent) setLoading(true);
+    try {
+      const [s, h] = await Promise.all([
+        fetchOccupancyStatus(activeBuilding),
+        fetchSavingsHistory(activeBuilding)
+      ]);
+      setStatus(s);
+      setSavings(h);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   };
 
   useEffect(() => { reload(); }, [activeBuilding]);
@@ -75,19 +84,16 @@ export default function OccupancyPage() {
     setOverrideMsg(null);
     try {
       const res = await overrideRoom(activeBuilding, {
-        room_id: selectedRoom.room_id, action, setpoint_c: action === "manual_setpoint" ? setpoint : undefined, reason: reason.trim(),
+        room_id: selectedRoom.room_id,
+        action,
+        setpoint_c: action === "manual_setpoint" ? setpoint : undefined,
+        reason: reason.trim(),
       });
       setOverrideMsg(res.message || "Override accepted.");
-      setStatus((prev: any) => {
-        if (!prev) return prev;
-        const rooms = prev.rooms.map((r: Room) => {
-          if (r.room_id !== selectedRoom.room_id) return r;
-          if (action === "force_setback") return { ...r, occupied: false, hvac_setpoint_c: 27, lighting_state: "dimmed", light_level_pct: 10, energy_delta_kwh: -1.5 };
-          if (action === "force_restore") return { ...r, occupied: true, hvac_setpoint_c: 23, lighting_state: "on", light_level_pct: 80, energy_delta_kwh: 0 };
-          return { ...r, hvac_setpoint_c: setpoint };
-        });
-        return { ...prev, rooms };
-      });
+
+      // Instant Refresh: Pull the latest PostgreSQL data silently so the UI (and KPIs) update instantly
+      await reload(true);
+
     } catch (e: any) {
       setOverrideErr(e.message || "Override failed");
     } finally {

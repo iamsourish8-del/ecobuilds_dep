@@ -46,34 +46,67 @@ export default function TenantPage() {
     });
   };
 
+  // Reusable data loader for initial mount and post-action refreshes
+  const loadData = async (silent = false) => {
+    if (!activeBuilding) {
+      if (!silent) setLoading(false);
+      return;
+    }
+    if (!silent) setLoading(true);
+    try {
+      const [m, b, n] = await Promise.all([
+        apiFetch(`/tenant/${activeBuilding}/me`).catch(() => null),
+        apiFetch(`/tenant/${activeBuilding}/leaderboard`).catch(() => null),
+        apiFetch(`/tenant/${activeBuilding}/nudges`).catch(() => null),
+      ]);
+
+      if (m) setMe({
+        ...FALLBACK_ME, ...m,
+        badges: Array.isArray(m.badges) ? m.badges : FALLBACK_ME.badges,
+        challenges: Array.isArray(m.challenges) ? m.challenges : FALLBACK_ME.challenges
+      });
+
+      if (b) setBoard({
+        ...FALLBACK_BOARD, ...b,
+        entries: Array.isArray(b.entries) ? b.entries : FALLBACK_BOARD.entries
+      });
+
+      if (n && Array.isArray(n.nudges)) setNudges(n.nudges);
+      else if (Array.isArray(n)) setNudges(n);
+
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!activeBuilding) { setLoading(false); return; }
-    setLoading(true);
-    Promise.all([
-      apiFetch(`/tenant/${activeBuilding}/me`).catch(() => null),
-      apiFetch(`/tenant/${activeBuilding}/leaderboard`).catch(() => null),
-      apiFetch(`/tenant/${activeBuilding}/nudges`).catch(() => null),
-    ]).then(([m, b, n]) => {
-      if (m) setMe({ ...FALLBACK_ME, ...m, badges: Array.isArray(m.badges) ? m.badges : FALLBACK_ME.badges, challenges: Array.isArray(m.challenges) ? m.challenges : FALLBACK_ME.challenges });
-      if (b) setBoard({ ...FALLBACK_BOARD, ...b, entries: Array.isArray(b.entries) ? b.entries : FALLBACK_BOARD.entries });
-      if (n && Array.isArray(n.nudges)) setNudges(n.nudges); else if (Array.isArray(n)) setNudges(n);
-    }).finally(() => setLoading(false));
+    loadData();
   }, [activeBuilding]);
 
-  const logEcoAction = async (action: string, points = 50) => {
+  const logEcoAction = async (actionName: string, points = 50) => {
     if (!activeBuilding) return;
     setLogging(true);
     setLogMsg(null);
     try {
-      const res = await apiFetch(`/tenant/${activeBuilding}/actions/log`, { method: "POST", body: JSON.stringify({ action, points, building_id: activeBuilding }) });
-      setMe((prev: any) => ({ ...prev, points: (prev.points || 0) + (res.points_awarded || points), energy_saved_kwh: (prev.energy_saved_kwh || 0) + 0.5 }));
-      setLogMsg(res.message || `+${res.points_awarded || points} green credits`);
-      fireConfetti(); // Fire on successful API call
+      // 1. Send points permanently to PostgreSQL
+      const res = await apiFetch(`/tenant/${activeBuilding}/log-action`, {
+        method: "POST",
+        body: JSON.stringify({ action: actionName, points })
+      });
+
+      // 2. Display real success message from the server
+      setLogMsg(res.message || `+${points} green credits saved!`);
+      fireConfetti();
+
+      // 3. Silently fetch the updated Leaderboard and Personal Points instantly
+      await loadData(true);
+
     } catch (e: any) {
-      setMe((prev: any) => ({ ...prev, points: (prev.points || 0) + points }));
-      setLogMsg(`+${points} green credits (saved locally)`);
-      fireConfetti(); // Fire on local fallback mode
-    } finally { setLogging(false); }
+      console.error("Action logging failed:", e);
+      setLogMsg(`Error: Could not save points. ${e.message}`);
+    } finally {
+      setLogging(false);
+    }
   };
 
   const badges = Array.isArray(me?.badges) ? me.badges : [];

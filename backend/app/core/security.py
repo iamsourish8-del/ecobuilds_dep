@@ -58,5 +58,8 @@ def require_building_access(building_id: str):
     if g.role == "super_admin":
         return None
     if building_id not in g.building_ids:
-        return jsonify({"detail": f"No access to building {building_id}"}), 403
+        # BETTER PROFESSIONAL ERROR MESSAGE
+        return jsonify({
+            "detail": "You do not have permission to view this facility. Please select an authorized building from the navigation menu."
+        }), 403
     return None

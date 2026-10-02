@@ -1,13 +1,18 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, g
 from app.core.security import login_required, require_building_access
+from app.core.models import Building
 
 bff_bp = Blueprint("bff", __name__)
 
-BUILDING_META = {
-    "bldg-aspiria-01": {"name": "Aspiria Campus — Building A", "city": "Pune", "area_m2": 12500, "floors": 6},
-    "bldg-capgemini-pune": {"name": "Capgemini Pune Campus", "city": "Pune", "area_m2": 28000, "floors": 8},
-}
-
+@bff_bp.route("/buildings/lookup", methods=["GET"])
+@login_required
+def buildings_lookup():
+    """Allows any authenticated user to fetch names of buildings they are authorized to see."""
+    if g.role == "super_admin":
+        buildings = Building.query.all()
+    else:
+        buildings = Building.query.filter(Building.id.in_(g.building_ids)).all()
+    return jsonify([{"id": b.id, "name": b.name, "city": b.city} for b in buildings])
 
 def _safe_modules():
     return {
@@ -49,33 +54,49 @@ def _safe_modules():
         },
     }
 
-
 @bff_bp.route("/dashboard-summary/<building_id>", methods=["GET"])
 @login_required
 def dashboard_summary(building_id):
-    err = require_building_access(building_id)
-    if err:
-        return err
-    meta = BUILDING_META.get(
-        building_id, {"name": building_id, "city": "—", "area_m2": 0, "floors": 0}
-    )
+    # Block tenants from accessing facility command center metrics
+    if g.role == "tenant":
+        return jsonify({
+            "detail": "Access restricted. Tenants can only view personal metrics and challenges within the Tenant Hub."
+        }), 403
+
+    if building_id != "ALL":
+        err = require_building_access(building_id)
+        if err:
+            return err
+        building = Building.query.filter_by(id=building_id).first()
+        b_name = building.name if building else building_id
+        b_city = building.city if building else "—"
+        b_area = building.area_m2 if building else 0
+        b_floors = building.floors if building else 0
+    else:
+        if g.role != "super_admin":
+            return jsonify({"detail": "Unauthorized access to global view"}), 403
+        b_name = "Global Portfolio — All Buildings"
+        b_city = "Multi-Region"
+        b_area = 40500
+        b_floors = 14
+
     return jsonify(
         {
             "building_id": building_id,
-            "building_name": meta.get("name", building_id),
-            "city": meta.get("city", "—"),
-            "area_m2": meta.get("area_m2", 0),
-            "floors": meta.get("floors", 0),
+            "building_name": b_name,
+            "city": b_city,
+            "area_m2": b_area,
+            "floors": b_floors,
             "timestamp": "2026-09-22T12:00:00Z",
             "kpis": {
-                "energy_today_kwh": 1842,
-                "savings_today_kwh": 412,
-                "savings_today_inr": 2884,
+                "energy_today_kwh": 5526 if building_id == "ALL" else 1842,
+                "savings_today_kwh": 1236 if building_id == "ALL" else 412,
+                "savings_today_inr": 8652 if building_id == "ALL" else 2884,
                 "savings_pct_week": 31.9,
-                "co2_avoided_kg": 338,
-                "peak_demand_kw": 286,
+                "co2_avoided_kg": 1014 if building_id == "ALL" else 338,
+                "peak_demand_kw": 858 if building_id == "ALL" else 286,
                 "self_consumption_pct": 72,
-                "open_faults": 1,
+                "open_faults": 3 if building_id == "ALL" else 1,
                 "occupied_pct": 58,
             },
             "modules": _safe_modules(),
@@ -84,25 +105,18 @@ def dashboard_summary(building_id):
                     "id": "a1",
                     "module": "fault_detection",
                     "severity": "yellow",
-                    "message": "Chiller-1 power draw +14% above 7-day baseline — inspect condenser",
+                    "message": f"[{b_name}] Chiller power draw +14% above baseline — inspect condenser",
                     "timestamp": "2026-09-22T08:15:00Z",
-                },
-                {
-                    "id": "a2",
-                    "module": "digital_twin",
-                    "severity": "info",
-                    "message": "ECBC compliance gap — LED + VFD package payback ~16 months",
-                    "timestamp": "2026-09-22T07:00:00Z",
                 },
             ],
             "hourly_load": [
                 {
                     "hour": h,
                     "kwh": round(
-                        40
+                        (40
                         + (35 if 9 <= h <= 17 else 10)
                         + (h % 3) * 4
-                        + (12 if h == 14 else 0),
+                        + (12 if h == 14 else 0)) * (3 if building_id == "ALL" else 1),
                         1,
                     ),
                 }

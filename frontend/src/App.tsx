@@ -18,6 +18,9 @@ const GridSolarPage = lazy(() => import("./modules/grid_solar/GridSolarPage"));
 const XaiPage = lazy(() => import("./modules/xai_nlq/XaiPage"));
 const TenantPage = lazy(() => import("./modules/tenant_gamification/TenantPage"));
 
+// NEW: Lazy load the admin page
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+
 const PageLoader = () => (
   <div className="flex items-center justify-center py-24 text-slate-400">
     Loading module…
@@ -36,6 +39,16 @@ export default function App() {
             <Route path="/" element={<Shell />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell when path is home */}
+
+              {/* NEW: Admin Route */}
+              <Route
+                path="admin"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminPage />
+                  </Suspense>
+                }
+              />
 
               <Route
                 path="occupancy"
