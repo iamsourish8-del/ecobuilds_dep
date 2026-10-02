@@ -32,23 +32,32 @@ def create_app():
     database_url = os.environ.get("DATABASE_URL")
     
     if database_url:
-        # Explicitly force the psycopg2 driver to prevent ModuleNotFoundErrors on Render
+        # Format for psycopg2 and ensure Supabase SSL is enforced
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
         elif database_url.startswith("postgresql://"):
             database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
             
+        # Ensure sslmode is present for cloud pooler connections
+        if "sslmode=" not in database_url:
+            separator = "&" if "?" in database_url else "?"
+            database_url = f"{database_url}{separator}sslmode=require"
+            
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     else:
-        # Fallback to local settings when running locally
         app.config['SQLALCHEMY_DATABASE_URI'] = settings.SQLALCHEMY_DATABASE_URI
         
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = settings.SQLALCHEMY_TRACK_MODIFICATIONS
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     db.init_app(app)
     
+    # Safely initialize tables without crashing the server if DB is temporarily unreachable
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Database tables verified/created successfully.")
+        except Exception as e:
+            print(f"Warning: Could not auto-create tables on startup: {e}")
     
     CORS(
         app,
