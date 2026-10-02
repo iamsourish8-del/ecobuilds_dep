@@ -29,13 +29,15 @@ def create_app():
     app = Flask(__name__)
     
     # --- CLOUD & LOCAL DATABASE ROUTING ---
-    # Retrieve Render's environment variable
     database_url = os.environ.get("DATABASE_URL")
     
     if database_url:
-        # Fix Supabase's 'postgres://' connection string for SQLAlchemy compatibility
+        # Explicitly force the psycopg2 driver to prevent ModuleNotFoundErrors on Render
         if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
+            database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     else:
         # Fallback to local settings when running locally
