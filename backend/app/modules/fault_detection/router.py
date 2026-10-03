@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request, g
 from app.core.security import login_required, require_building_access
+from app.core.models import User, Building
 
 fault_bp = Blueprint("faults", __name__)
 EQUIPMENT = [
@@ -20,12 +21,18 @@ EQUIPMENT = [
 def health(building_id):
     err = require_building_access(building_id)
     if err: return err
+    
+    # Dynamically extract all maintenance users assigned to this specific building
+    maintenance_users = User.query.filter(User.role == 'maintenance', User.buildings.any(Building.id == building_id)).all()
+    maintenance_contacts = [{"name": m.full_name, "email": m.email, "phone": "+91 (982) 555-0194"} for m in maintenance_users]
+
     return jsonify({
         "building_id": building_id,
         "healthy_count": sum(1 for e in EQUIPMENT if e["status"]=="green"),
         "warning_count": sum(1 for e in EQUIPMENT if e["status"]=="yellow"),
         "critical_count": sum(1 for e in EQUIPMENT if e["status"]=="red"),
         "equipment": EQUIPMENT,
+        "maintenance_contacts": maintenance_contacts
     })
 
 @fault_bp.route("/<building_id>/equipment/<equipment_id>/trend", methods=["GET"])
@@ -44,3 +51,25 @@ def trend(building_id, equipment_id):
         val = baseline + (elev if i > 72 else elev * 0.3) + noise
         points.append({"ts": f"2026-09-{min(day,22):02d}T{hour:02d}:00:00", "value": round(val, 1)})
     return jsonify({"equipment_id":equipment_id,"baseline":baseline,"anomaly_threshold":round(baseline*1.1,1),"points":points})
+
+@fault_bp.route("/<building_id>/equipment/<equipment_id>/resolve", methods=["POST"])
+@login_required
+def resolve_fault(building_id, equipment_id):
+    if getattr(g, "role", "") != "maintenance":
+        return jsonify({"detail": "Unauthorized. Only Maintenance personnel can run diagnostics and resolve faults."}), 403
+        
+    err = require_building_access(building_id)
+    if err: return err
+
+    eq = next((e for e in EQUIPMENT if e["equipment_id"] == equipment_id), None)
+    if not eq:
+        return jsonify({"error": "Equipment not found"}), 404
+
+    eq["status"] = "green"
+    eq["power_draw_kw"] = round(eq["baseline_kw"] * 1.01, 1)
+    eq["deviation_pct"] = 1.0
+    eq["suspected_cause"] = None
+    eq["recommended_action"] = None
+    eq["last_service"] = "Just now"
+
+    return jsonify({"status": "success", "message": "Diagnostics complete."})

@@ -7,12 +7,15 @@ import clsx from "clsx";
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
+  // Completely remove the sidebar for the maintenance persona to provide a focused, full-screen workspace.
+  if (user?.role === "maintenance") return null;
+
   const navItems = [
-    { label: "Command Center", path: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "facility_manager", "maintenance"] },
-    { label: "Occupancy HVAC", path: "/occupancy", icon: Activity, roles: ["super_admin", "facility_manager", "maintenance", "tenant"] },
-    { label: "ECBC Digital Twin", path: "/digital-twin", icon: Cpu, roles: ["super_admin", "facility_manager", "maintenance", "tenant"] },
-    { label: "Fault Detection", path: "/faults", icon: AlertTriangle, roles: ["super_admin", "facility_manager", "maintenance", "tenant"] },
-    { label: "Solar & Grid", path: "/grid", icon: Sun, roles: ["super_admin", "facility_manager", "maintenance", "tenant"] },
+    { label: "Command Center", path: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "facility_manager"] },
+    { label: "Occupancy HVAC", path: "/occupancy", icon: Activity, roles: ["super_admin", "facility_manager", "tenant"] },
+    { label: "ECBC Digital Twin", path: "/digital-twin", icon: Cpu, roles: ["super_admin", "facility_manager", "tenant"] },
+    { label: "Equipment Health", path: "/faults", icon: AlertTriangle, roles: ["super_admin", "facility_manager", "tenant"] },
+    { label: "Solar & Grid", path: "/grid", icon: Sun, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "Explainable AI", path: "/xai", icon: Brain, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "Tenant Engagement", path: "/tenant", icon: Trophy, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "Admin Portal", path: "/admin", icon: ShieldAlert, roles: ["super_admin"] },
@@ -27,7 +30,6 @@ export const Sidebar: React.FC = () => {
           <Zap className="w-5 h-5" />
         </div>
         <div>
-          {/* Text toggles between dark slate and white based on theme */}
           <span className="font-bold text-slate-900 dark:text-white tracking-tight transition-colors">EcoBuilds</span>
           <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider">Smart Buildings</span>
         </div>
@@ -45,7 +47,6 @@ export const Sidebar: React.FC = () => {
                   "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                    // Inactive links now support light mode hover states
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
                 )
               }

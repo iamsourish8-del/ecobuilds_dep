@@ -6,7 +6,6 @@ from werkzeug.security import generate_password_hash
 with app.app_context():
     db.create_all()
     
-    # Check if admin already exists
     if User.query.filter_by(email="admin@demo.com").first():
         print("Database already seeded! Skipping safe seeder.")
     else:
@@ -26,7 +25,6 @@ with app.app_context():
         db.session.add_all([b1, b2])
         db.session.commit()
 
-        # Rooms for Aspiria
         aspiria_rooms = [
             Room(building_id=b1.id, name="Conference A", floor="1", zone="Meeting", occupied=True, temperature_c=24.1, setpoint_c=23.0, co2_ppm=620),
             Room(building_id=b1.id, name="Conference B", floor="1", zone="Meeting", occupied=False, temperature_c=26.8, setpoint_c=27.0, co2_ppm=410, energy_delta_kwh=-1.4),
@@ -41,6 +39,9 @@ with app.app_context():
         tenant = User(id="tn-001", email="tenant@demo.com", password_hash=generate_password_hash("demo123"), full_name="Arjun Mehta", role="tenant")
         tenant.buildings.append(b1)
         
-        db.session.add_all([fm, tenant])
+        maintenance = User(id="mt-001", email="maintenance@demo.com", password_hash=generate_password_hash("demo123"), full_name="Mike Tech", role="maintenance")
+        maintenance.buildings.append(b1)
+        
+        db.session.add_all([fm, tenant, maintenance])
         db.session.commit()
         print("Seeding completed successfully!")

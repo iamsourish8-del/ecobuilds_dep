@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { useBuilding } from "../../contexts/BuildingContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../services/apiClient";
 import { ExplanationTooltip } from "../../components/ExplanationTooltip";
-import { Thermometer, Wind, Users, Sliders, Layers } from "lucide-react";
+import { Thermometer, Wind, Users, Sliders, Layers, ShieldAlert } from "lucide-react";
 import clsx from "clsx";
 
 type LayerMode = "thermal" | "airflow" | "presence";
@@ -25,6 +26,8 @@ function tempColor(t: number) {
 
 export default function DigitalTwinPage() {
   const { activeBuilding } = useBuilding();
+  const { user } = useAuth();
+
   const [layer, setLayer] = useState<LayerMode>("thermal");
   const [selected, setSelected] = useState<typeof ZONES[0] | null>(null);
   const [heatwave, setHeatwave] = useState(0);
@@ -152,9 +155,17 @@ export default function DigitalTwinPage() {
                 <p className="font-semibold text-emerald-950 dark:text-emerald-100">₹{hourlyCost}</p>
               </div>
             </div>
-            <button onClick={runEcbc} disabled={simLoading} className="mt-3 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 transition disabled:opacity-50">
-              {simLoading ? "Running ECBC model…" : "Run ECBC retrofit ranking"}
-            </button>
+
+            {/* Gate access based on role */}
+            {user?.role !== "tenant" ? (
+              <button onClick={runEcbc} disabled={simLoading} className="mt-3 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 transition disabled:opacity-50">
+                {simLoading ? "Running ECBC model…" : "Run ECBC retrofit ranking"}
+              </button>
+            ) : (
+              <div className="mt-3 w-full py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed">
+                <ShieldAlert className="w-4 h-4" /> Admin Access Required
+              </div>
+            )}
           </div>
 
           {selected && (

@@ -29,6 +29,9 @@ class Building(db.Model):
     city = db.Column(db.String(100))
     area_m2 = db.Column(db.Integer)
     floors = db.Column(db.Integer)
+    
+    # NEW: ECBC Compliance flag maps directly to Admin Portal, defaults to unchecked
+    is_ecbc_compliant = db.Column(db.Boolean, default=False)
 
 class TenantProfile(db.Model):
     __tablename__ = 'tenant_profiles'

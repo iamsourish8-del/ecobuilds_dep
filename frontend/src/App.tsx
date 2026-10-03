@@ -10,7 +10,6 @@ import { BuildingProvider } from "./contexts/BuildingContext";
 import { Shell } from "./modules/shell/Shell";
 import { LoginPage } from "./pages/LoginPage";
 
-// Lazy-load each module so the initial shell stays light
 const OccupancyPage = lazy(() => import("./modules/occupancy_hvac/OccupancyPage"));
 const DigitalTwinPage = lazy(() => import("./modules/digital_twin/DigitalTwinPage"));
 const FaultsPage = lazy(() => import("./modules/fault_detection/FaultsPage"));
@@ -25,11 +24,12 @@ const PageLoader = () => (
   </div>
 );
 
-// Interceptor to automatically route users to their correct starting page
 const RoleBasedRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === "tenant") return <Navigate to="/tenant" replace />;
+  if (user.role === "super_admin") return <Navigate to="/admin" replace />;
+  if (user.role === "maintenance") return <Navigate to="/faults" replace />;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -40,17 +40,10 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-
-            {/* 
-              CRITICAL FIX: The redirect interceptor is now placed completely OUTSIDE 
-              of the Shell wrapper. This guarantees it intercepts the root ("/") visit
-              first, preventing the Shell from hijacking it. 
-            */}
             <Route path="/" element={<RoleBasedRedirect />} />
 
-            {/* Everything under Shell requires auth (enforced inside Shell) */}
             <Route element={<Shell />}>
-              <Route path="dashboard" element={null} /> {/* CommandCenter rendered by Shell */}
+              <Route path="dashboard" element={null} />
 
               <Route path="admin" element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
               <Route path="occupancy" element={<Suspense fallback={<PageLoader />}><OccupancyPage /></Suspense>} />
@@ -61,7 +54,6 @@ export default function App() {
               <Route path="tenant" element={<Suspense fallback={<PageLoader />}><TenantPage /></Suspense>} />
             </Route>
 
-            {/* Catch-all route also uses the safe interceptor */}
             <Route path="*" element={<RoleBasedRedirect />} />
           </Routes>
         </BrowserRouter>
