@@ -1,5 +1,4 @@
 import os
-from sqlalchemy.pool import NullPool
 
 class Settings:
     SECRET_KEY = os.getenv("SECRET_KEY", "unified_bms-unified_bms-demo-secret-2026")
@@ -13,26 +12,14 @@ class Settings:
         "http://127.0.0.1:3000"
     ]
     
+    # Safe Local Fallback: Uses SQLite locally, but Render will still use its live Supabase DATABASE_URL
     db_url = os.getenv("DATABASE_URL", "sqlite:///local_ecobuilds.db")
     
-    # Standardize postgres protocol prefix
+    # Crucial safety net: SQLAlchemy drops support for "postgres://" prefix, requires "postgresql://"
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
         
-    # Append TCP keepalive parameters for PostgreSQL to prevent silent SSL drops
-    if "postgresql" in db_url and "keepalives" not in db_url:
-        separator = "&" if "?" in db_url else "?"
-        db_url += f"{separator}keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=5"
-        
     SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
-    if "postgresql" in db_url:
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            "poolclass": NullPool,   # Offloads connection management to Supabase PgBouncer to eliminate dead SSL sockets
-            "pool_pre_ping": True,  # Verifies connection health before executing queries
-        }
-    else:
-        SQLALCHEMY_ENGINE_OPTIONS = {}
 
 settings = Settings()
