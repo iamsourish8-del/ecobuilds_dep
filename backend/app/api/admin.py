@@ -63,6 +63,7 @@ def add_building():
 
 @admin_bp.route("/users", methods=["POST"])
 @roles_required("super_admin")
+
 def add_user():
     data = request.get_json(silent=True) or {}
     email = data.get("email", "").strip().lower()
@@ -89,43 +90,44 @@ def add_user():
 @admin_bp.route("/region/summary", methods=["GET"])
 @roles_required("super_admin")
 def region_summary():
-    # 1. Fetch all buildings (1 Query)
+    # 1. Eager load all data in exactly two queries
     buildings = Building.query.all()
-    
-    # 2. EAGER LOAD: Fetch all users AND their building connections simultaneously (1 Query)
-    # This completely eliminates the N+1 network latency problem.
     all_users = User.query.options(selectinload(User.buildings)).all()
+    
+    # 2. O(N) Hash Map Optimization: Group users by building ID instantly in memory
+    bldg_map = {b.id: {"facility_manager": [], "maintenance": [], "tenant": []} for b in buildings}
+    
+    for u in all_users:
+        if u.role in ["facility_manager", "maintenance", "tenant"]:
+            user_data = {"name": u.full_name, "email": u.email}
+            for b in u.buildings:
+                if b.id in bldg_map:
+                    bldg_map[b.id][u.role].append(user_data)
     
     b_list = []
     
+    # 3. Assemble response using the pre-calculated hash map (Zero nested looping)
     for b in buildings:
-        # Filter users in memory rather than hitting Supabase repeatedly inside the loop
-        managers = [m for m in all_users if m.role == 'facility_manager' and any(b.id == ub.id for ub in m.buildings)]
-        maintenance = [m for m in all_users if m.role == 'maintenance' and any(b.id == ub.id for ub in m.buildings)]
-        tenants = [m for m in all_users if m.role == 'tenant' and any(b.id == ub.id for ub in m.buildings)]
-        
-        mgr_data = [{"name": m.full_name, "email": m.email} for m in managers]
-        maint_data = [{"name": m.full_name, "email": m.email} for m in maintenance]
-        tenant_data = [{"name": m.full_name, "email": m.email} for m in tenants]
+        managers = bldg_map[b.id]["facility_manager"]
+        maintenance = bldg_map[b.id]["maintenance"]
+        tenants = bldg_map[b.id]["tenant"]
         
         ecbc_compliant = getattr(b, 'is_ecbc_compliant', False)
-        area = b.area_m2 or 0
-        savings = int(area * 8.5)      
+        area = b.area_m2 or 0   
         
         is_operational = bool(managers and maintenance and tenants)
-        status = "Operational" if is_operational else "Not Operational"
         
         b_list.append({
             "id": b.id, 
             "name": b.name, 
             "city": b.city,
             "area_m2": area,
-            "managers": mgr_data,
-            "maintenance": maint_data,
-            "tenants": tenant_data,
-            "status": status,
+            "managers": managers,
+            "maintenance": maintenance,
+            "tenants": tenants,
+            "status": "Operational" if is_operational else "Not Operational",
             "ecbc_compliant": ecbc_compliant,
-            "savings_ytd": savings
+            "savings_ytd": int(area * 8.5)
         })
         
     compliant_count = sum(1 for b in b_list if b["ecbc_compliant"])
