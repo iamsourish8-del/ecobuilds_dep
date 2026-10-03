@@ -88,13 +88,17 @@ def add_user():
 @admin_bp.route("/region/summary", methods=["GET"])
 @roles_required("super_admin")
 def region_summary():
+    # Fetch all buildings and all users in one batch query each (eliminates the N+1 loop bottleneck)
     buildings = Building.query.all()
+    all_users = User.query.all()
+    
     b_list = []
     
     for b in buildings:
-        managers = User.query.filter(User.role == 'facility_manager', User.buildings.any(Building.id == b.id)).all()
-        maintenance = User.query.filter(User.role == 'maintenance', User.buildings.any(Building.id == b.id)).all()
-        tenants = User.query.filter(User.role == 'tenant', User.buildings.any(Building.id == b.id)).all()
+        # Filter users in memory rather than hitting Supabase repeatedly inside the loop
+        managers = [m for m in all_users if m.role == 'facility_manager' and any(b.id == ub.id for ub in m.buildings)]
+        maintenance = [m for m in all_users if m.role == 'maintenance' and any(b.id == ub.id for ub in m.buildings)]
+        tenants = [m for m in all_users if m.role == 'tenant' and any(b.id == ub.id for ub in m.buildings)]
         
         mgr_data = [{"name": m.full_name, "email": m.email} for m in managers]
         maint_data = [{"name": m.full_name, "email": m.email} for m in maintenance]
@@ -104,7 +108,6 @@ def region_summary():
         area = b.area_m2 or 0
         savings = int(area * 8.5)      
         
-        # Operational ONLY if Managers, Maintenance, and Tenants are all present
         is_operational = bool(managers and maintenance and tenants)
         status = "Operational" if is_operational else "Not Operational"
         
@@ -112,7 +115,7 @@ def region_summary():
             "id": b.id, 
             "name": b.name, 
             "city": b.city,
-            "area_m2": area,  # Dynamically passed floor area
+            "area_m2": area,
             "managers": mgr_data,
             "maintenance": maint_data,
             "tenants": tenant_data,
