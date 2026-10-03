@@ -7,10 +7,11 @@ import clsx from "clsx";
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
-  // Completely remove the sidebar for the maintenance persona to provide a focused, full-screen workspace.
-  if (user?.role === "maintenance") return null;
+  // Completely remove the sidebar for maintenance and tenant personas to provide a focused, full-screen workspace.
+  if (user?.role === "maintenance" || user?.role === "tenant") return null;
 
   const navItems = [
+    { label: "Admin Portal", path: "/admin", icon: ShieldAlert, roles: ["super_admin"] },
     { label: "Command Center", path: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "facility_manager"] },
     { label: "Occupancy HVAC", path: "/occupancy", icon: Activity, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "ECBC Digital Twin", path: "/digital-twin", icon: Cpu, roles: ["super_admin", "facility_manager", "tenant"] },
@@ -18,7 +19,6 @@ export const Sidebar: React.FC = () => {
     { label: "Solar & Grid", path: "/grid", icon: Sun, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "Explainable AI", path: "/xai", icon: Brain, roles: ["super_admin", "facility_manager", "tenant"] },
     { label: "Tenant Engagement", path: "/tenant", icon: Trophy, roles: ["super_admin", "facility_manager", "tenant"] },
-    { label: "Admin Portal", path: "/admin", icon: ShieldAlert, roles: ["super_admin"] },
   ];
 
   const filteredNavItems = navItems.filter((item) => user && item.roles.includes(user.role));
