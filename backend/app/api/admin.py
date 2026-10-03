@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from werkzeug.security import generate_password_hash
+from sqlalchemy.orm import selectinload
 from app.core.security import login_required, roles_required
 from app.core.models import db, Building, User, Room, Equipment
 
@@ -88,9 +89,12 @@ def add_user():
 @admin_bp.route("/region/summary", methods=["GET"])
 @roles_required("super_admin")
 def region_summary():
-    # Fetch all buildings and all users in one batch query each (eliminates the N+1 loop bottleneck)
+    # 1. Fetch all buildings (1 Query)
     buildings = Building.query.all()
-    all_users = User.query.all()
+    
+    # 2. EAGER LOAD: Fetch all users AND their building connections simultaneously (1 Query)
+    # This completely eliminates the N+1 network latency problem.
+    all_users = User.query.options(selectinload(User.buildings)).all()
     
     b_list = []
     
