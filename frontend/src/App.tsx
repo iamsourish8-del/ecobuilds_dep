@@ -49,7 +49,8 @@ export default function App() {
               <Route path="occupancy" element={<Suspense fallback={<PageLoader />}><OccupancyPage /></Suspense>} />
               <Route path="digital-twin" element={<Suspense fallback={<PageLoader />}><DigitalTwinPage /></Suspense>} />
               <Route path="faults" element={<Suspense fallback={<PageLoader />}><FaultsPage /></Suspense>} />
-              <Route path="grid-solar" element={<Suspense fallback={<PageLoader />}><GridSolarPage /></Suspense>} />
+              {/* FIXED: Changed route path from "grid-solar" to "grid" to match sidebar link */}
+              <Route path="grid" element={<Suspense fallback={<PageLoader />}><GridSolarPage /></Suspense>} />
               <Route path="xai" element={<Suspense fallback={<PageLoader />}><XaiPage /></Suspense>} />
               <Route path="tenant" element={<Suspense fallback={<PageLoader />}><TenantPage /></Suspense>} />
             </Route>

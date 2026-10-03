@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, g
 from werkzeug.security import generate_password_hash
-from sqlalchemy.orm import selectinload
 from app.core.security import login_required, roles_required
 from app.core.models import db, Building, User, Room, Equipment
 
@@ -10,11 +9,13 @@ admin_bp = Blueprint("admin", __name__)
 @login_required  
 def get_buildings():
     user = User.query.get(g.user_id)
+    if not user:
+        return jsonify([]), 404
     if user.role == "super_admin":
         buildings = Building.query.all()
     else:
         buildings = user.buildings
-    return jsonify([{"id": b.id, "name": b.name, "city": b.city, "area_m2": b.area_m2, "floors": b.floors} for b in buildings])
+    return jsonify([{"id": str(b.id), "name": b.name, "city": b.city, "area_m2": b.area_m2, "floors": b.floors} for b in buildings])
 
 @admin_bp.route("/buildings", methods=["POST"])
 @roles_required("super_admin")
@@ -24,8 +25,6 @@ def add_building():
     b_city = data.get("city")
     b_area = int(data.get("area_m2", 12500))
     b_floors = int(data.get("floors", 6))
-    
-    # Extract the new compliance flag
     b_ecbc = bool(data.get("is_ecbc_compliant", False))
 
     new_bldg = Building(
@@ -59,11 +58,10 @@ def add_building():
             ))
 
     db.session.commit()
-    return jsonify({"status": "success", "message": f"Building '{new_bldg.name}' created!", "id": new_bldg.id})
+    return jsonify({"status": "success", "message": f"Building '{new_bldg.name}' created!", "id": str(new_bldg.id)})
 
 @admin_bp.route("/users", methods=["POST"])
 @roles_required("super_admin")
-
 def add_user():
     data = request.get_json(silent=True) or {}
     email = data.get("email", "").strip().lower()
@@ -77,11 +75,13 @@ def add_user():
     )
     
     building_ids = data.get("building_ids", [])
-    if isinstance(building_ids, str): building_ids = [building_ids]
+    if isinstance(building_ids, str): 
+        building_ids = [building_ids]
         
     for b_id in building_ids:
         b = Building.query.get(b_id)
-        if b: new_user.buildings.append(b)
+        if b: 
+            new_user.buildings.append(b)
             
     db.session.add(new_user)
     db.session.commit()
@@ -90,60 +90,71 @@ def add_user():
 @admin_bp.route("/region/summary", methods=["GET"])
 @roles_required("super_admin")
 def region_summary():
-    # 1. Eager load all data in exactly two queries
-    buildings = Building.query.all()
-    all_users = User.query.options(selectinload(User.buildings)).all()
-    
-    # 2. O(N) Hash Map Optimization: Group users by building ID instantly in memory
-    bldg_map = {b.id: {"facility_manager": [], "maintenance": [], "tenant": []} for b in buildings}
-    
-    for u in all_users:
-        if u.role in ["facility_manager", "maintenance", "tenant"]:
-            user_data = {"name": u.full_name, "email": u.email}
-            for b in u.buildings:
-                if b.id in bldg_map:
-                    bldg_map[b.id][u.role].append(user_data)
-    
-    b_list = []
-    
-    # 3. Assemble response using the pre-calculated hash map (Zero nested looping)
-    for b in buildings:
-        managers = bldg_map[b.id]["facility_manager"]
-        maintenance = bldg_map[b.id]["maintenance"]
-        tenants = bldg_map[b.id]["tenant"]
+    try:
+        buildings = Building.query.all()
+        all_users = User.query.all()
         
-        ecbc_compliant = getattr(b, 'is_ecbc_compliant', False)
-        area = b.area_m2 or 0   
+        # Build map with string keys to handle integer, UUID, or string IDs cleanly
+        bldg_map = {str(b.id): {"facility_manager": [], "maintenance": [], "tenant": []} for b in buildings}
         
-        is_operational = bool(managers and maintenance and tenants)
+        for u in all_users:
+            role = getattr(u, 'role', '')
+            if role in ["facility_manager", "maintenance", "tenant"]:
+                u_info = {"name": getattr(u, 'full_name', '') or getattr(u, 'email', ''), "email": getattr(u, 'email', '')}
+                try:
+                    user_bldgs = u.buildings
+                except Exception:
+                    user_bldgs = []
+                for b in user_bldgs:
+                    b_id = str(b.id)
+                    if b_id in bldg_map:
+                        bldg_map[b_id][role].append(u_info)
+                        
+        b_list = []
+        for b in buildings:
+            b_id = str(b.id)
+            managers = bldg_map.get(b_id, {}).get("facility_manager", [])
+            maintenance = bldg_map.get(b_id, {}).get("maintenance", [])
+            tenants = bldg_map.get(b_id, {}).get("tenant", [])
+            
+            ecbc_compliant = bool(getattr(b, 'is_ecbc_compliant', False))
+            area = int(getattr(b, 'area_m2', 0) or 0)
+            is_operational = bool(managers and maintenance and tenants)
+            
+            b_list.append({
+                "id": str(b.id),
+                "name": b.name,
+                "city": b.city,
+                "area_m2": area,
+                "managers": managers,
+                "maintenance": maintenance,
+                "tenants": tenants,
+                "status": "Operational" if is_operational else "Not Operational",
+                "ecbc_compliant": ecbc_compliant,
+                "savings_ytd": int(area * 8.5)
+            })
+            
+        compliant_count = sum(1 for b in b_list if b["ecbc_compliant"])
+        compliance_pct = int((compliant_count / len(buildings)) * 100) if buildings else 0
+        total_tenants = sum(len(b["tenants"]) for b in b_list)
         
-        b_list.append({
-            "id": b.id, 
-            "name": b.name, 
-            "city": b.city,
-            "area_m2": area,
-            "managers": managers,
-            "maintenance": maintenance,
-            "tenants": tenants,
-            "status": "Operational" if is_operational else "Not Operational",
-            "ecbc_compliant": ecbc_compliant,
-            "savings_ytd": int(area * 8.5)
+        return jsonify({
+            "region_name": "Global Platform Operations",
+            "kpis": {
+                "total_buildings": len(buildings),
+                "total_tenants": total_tenants,
+                "regional_savings_kwh": sum(b["savings_ytd"] for b in b_list),
+                "ecbc_compliance_pct": compliance_pct,
+            },
+            "buildings": b_list
         })
-        
-    compliant_count = sum(1 for b in b_list if b["ecbc_compliant"])
-    compliance_pct = int((compliant_count / len(buildings)) * 100) if buildings else 0
-    total_tenants = sum(len(b["tenants"]) for b in b_list)
-    
-    return jsonify({
-        "region_name": "Global Platform Operations",
-        "kpis": {
-            "total_buildings": len(buildings),
-            "total_tenants": total_tenants,
-            "regional_savings_kwh": sum(b["savings_ytd"] for b in b_list),
-            "ecbc_compliance_pct": compliance_pct,
-        },
-        "buildings": b_list
-    })
+    except Exception as e:
+        return jsonify({
+            "region_name": "Global Platform Operations",
+            "kpis": {"total_buildings": 0, "total_tenants": 0, "regional_savings_kwh": 0, "ecbc_compliance_pct": 0},
+            "buildings": [],
+            "error": str(e)
+        }), 200
 
 @admin_bp.route("/buildings/<building_id>/compliance", methods=["PATCH"])
 @roles_required("super_admin")

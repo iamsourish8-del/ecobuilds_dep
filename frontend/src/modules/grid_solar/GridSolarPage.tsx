@@ -15,7 +15,15 @@ export default function GridSolarPage() {
   const [shed, setShed] = useState(false);
 
   useEffect(() => {
-    if (!activeBuilding) return;
+    // FIXED: Drop loading state and return safely if no building is selected (e.g. Global View)
+    if (!activeBuilding) {
+      setSolar(null);
+      setDr(null);
+      setOutage(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     Promise.all([
       apiFetch(`/grid-solar/${activeBuilding}/solar`).catch(() => null),
