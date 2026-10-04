@@ -45,3 +45,13 @@ Optional `frontend/.env`: `VITE_API_BASE=http://127.0.0.1:8000/api/v1`
 ## Stack
 
 Flask + PyJWT (pure Python) · React + Vite + Tailwind + Recharts + Leaflet
+
+
+## Research and References
+
+Sensor-Based Lighting: The Next Smart Revolution · [Click Here](https://fanos.com.sa/en/blog/smart-lighting-sensor-based-motion-daylight-controls/a-391093107)
+What Is BMS System in HVAC and How Does It Reduce Energy Costs? · [Click Here](https://airlutions.com/what-is-bms-system-hvac-saudi-arabia/)
+Occupancy-based HVAC control using deep learning algorithms for estimating online preconditioning time in residential buildings · [Click Here](https://www.sciencedirect.com/science/article/abs/pii/S0378778821006617)
+Smart City Digital Twin–Enabled Energy Management: Toward Real-Time Urban Building Energy Benchmarking · [Click Here](https://ascelibrary.org/doi/abs/10.1061/(ASCE)ME.1943-5479.0000741)
+An Explainable Deep Learning-Based Predictive Maintenance Solution for Air Compressor Condition Monitoring · [Click Here](https://pmc.ncbi.nlm.nih.gov/articles/PMC12473932/)
+REACTS: Reasoning-Based, Explainable and Adaptive Contextual Tool for Smart Energy Management · [Click Here](https://journals.sagepub.com/doi/10.3233/FAIA251442)
