@@ -26,6 +26,7 @@ Cloud-style building management prototype that cuts energy waste, protects comfo
 ```powershell
 cd backend
 python -m pip install -r requirements.txt
+python seed.py
 python run.py
 ```
 
